@@ -150,6 +150,10 @@ def cite(
         "(classification) or linear_regression, random_forest, gradient_boosting, "
         "xgboost, catboost (regression). Do NOT put hyperparameters, class weights, "
         "or techniques inside the model name string - those are separate parameters. "
+        "IMPORTANT: unlike datasets, model_a/model_b/technique_b/class_weight_a/"
+        "class_weight_b/primary_metric do NOT accept comma-separated lists - each is "
+        "exactly one value. To compare three models, call run_experiment three "
+        "separate times, once per pair you want to compare. "
         "class_weight_a/class_weight_b are optional, the only meaningful value is "
         "'balanced'. technique_b is optional, lowercase only: smote or adasyn. "
         "primary_metric decides which delta counts as supported: f1, precision, "
@@ -179,6 +183,24 @@ def run_experiment(
 
     def norm(text):
         return text.strip().lower()
+
+    single_value_fields = {
+        "model_a": model_a,
+        "model_b": model_b,
+        "technique_b": technique_b,
+        "class_weight_a": class_weight_a,
+        "class_weight_b": class_weight_b,
+        "primary_metric": primary_metric,
+    }
+
+    for field_name, value in single_value_fields.items():
+        if "," in value:
+            return (
+                f"Error: {field_name} must be a single value, not a list "
+                f"(you passed '{value}'). Only datasets accepts a comma-separated "
+                f"list. To compare more than two configurations, call "
+                f"run_experiment again, once per pair."
+            )
 
     try:
         spec = ExperimentSpec(
