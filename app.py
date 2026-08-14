@@ -1,6 +1,7 @@
 import glob
 import json
 import os
+import time
 
 import pandas as pd
 import streamlit as st
@@ -55,21 +56,38 @@ def render_verdicts(report):
                 st.caption(f"Key papers: {r['key_papers']}")
 
 
+def render_turn(event):
+    avatar = ROLE_AVATAR.get(event["role"])
+
+    with st.chat_message(event["role"], avatar=avatar):
+        st.markdown(f"**{event['role'].upper()}** · turn {event['turn']}")
+
+        if event["said"]:
+            st.write(event["said"])
+
+        for action in event["actions"]:
+            arg_preview = ", ".join(f"{k}={v}" for k, v in action["args"].items())
+
+            with st.expander(f"🔧 {action['tool']}({arg_preview})"):
+                st.code(action["result"])
+
+
 def render_transcript(trace):
-    for event in trace["events"]:
-        avatar = ROLE_AVATAR.get(event["role"])
+    events = trace["events"]
 
-        with st.chat_message(event["role"], avatar=avatar):
-            st.markdown(f"**{event['role'].upper()}** · turn {event['turn']}")
+    col1, col2 = st.columns([1, 2])
+    replay = col1.toggle("▶ Replay as it happened")
+    pace = col2.slider("Seconds between turns", 0.2, 3.0, 1.0, 0.1, disabled=not replay)
 
-            if event["said"]:
-                st.write(event["said"])
+    if replay:
+        st.caption("Playing back the conversation - the rest of the page will finish once this ends.")
 
-            for action in event["actions"]:
-                arg_preview = ", ".join(f"{k}={v}" for k, v in action["args"].items())
-
-                with st.expander(f"🔧 {action['tool']}({arg_preview})"):
-                    st.code(action["result"])
+        for event in events:
+            render_turn(event)
+            time.sleep(pace)
+    else:
+        for event in events:
+            render_turn(event)
 
 
 def render_probes(report):
@@ -178,7 +196,8 @@ def main():
     for path in paths:
         trace = load_trace(path)
         claim = trace["meta"].get("scenario", "")[:60]
-        labels.append(f"{claim}  —  {os.path.basename(path)}")
+        marker = "" if trace.get("final_report") else "  ⚠️ no graph/verdict data"
+        labels.append(f"{claim}  —  {os.path.basename(path)}{marker}")
 
     choice = st.sidebar.selectbox(
         "Choose a run",
@@ -201,7 +220,11 @@ def main():
     if report:
         render_verdicts(report)
     else:
-        st.warning("This run predates structured report capture - only the transcript is available.")
+        st.error(
+            "⚠️ This run has no verdict/citation-graph data - it was saved before that "
+            "feature existed. Run a brand new investigation (`python orchestrator.py "
+            "\"<claim>\"`) and pick the new one from the sidebar."
+        )
 
     tab_transcript, tab_probes, tab_graph = st.tabs(
         ["Transcript", "Probes", "Citation graph"]
@@ -214,13 +237,13 @@ def main():
         if report:
             render_probes(report)
         else:
-            st.write("No structured probe data for this run.")
+            st.write("No structured probe data for this run - see the warning above.")
 
     with tab_graph:
         if report:
             render_citation_graph(report)
         else:
-            st.write("No structured citation data for this run.")
+            st.write("No citation graph for this run - see the warning above.")
 
 
 if __name__ == "__main__":
