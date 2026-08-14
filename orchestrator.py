@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import sys
 import time
@@ -34,8 +35,11 @@ def show(role, said, actions):
         console.print(f"      {output}", style="green", markup=False)
 
 
-async def investigate(claim):
-    server = StdioServerParameters(command=sys.executable, args=["server.py", claim])
+async def investigate(claim, server_args=None):
+    server = StdioServerParameters(
+        command=sys.executable,
+        args=["server.py", claim] + (server_args or []),
+    )
     async with stdio_client(server) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
@@ -105,5 +109,24 @@ async def investigate(claim):
 
 
 if __name__ == "__main__":
-    claim = sys.argv[1] if len(sys.argv) > 1 else "Does SMOTE improve F1 more than class-weighting on imbalanced data?"
-    asyncio.run(investigate(claim))
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "claim",
+        nargs="?",
+        default="Does SMOTE improve F1 more than class-weighting on imbalanced data?",
+    )
+    parser.add_argument("--csv")
+    parser.add_argument("--target")
+    parser.add_argument("--task-type", choices=["classification", "regression"])
+    parser.add_argument("--positive-label")
+    args = parser.parse_args()
+
+    server_args = []
+    if args.csv:
+        if not args.target or not args.task_type:
+            raise SystemExit("--csv requires --target and --task-type")
+        server_args += ["--csv", args.csv, "--target", args.target, "--task-type", args.task_type]
+        if args.positive_label:
+            server_args += ["--positive-label", args.positive_label]
+
+    asyncio.run(investigate(args.claim, server_args))

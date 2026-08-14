@@ -32,6 +32,7 @@ ROLE_TOOLS = {
         "get_citations",
         "get_references",
         "cite",
+        "list_datasets",
         "run_experiment",
         "send_message",
         "read_messages",
@@ -97,7 +98,11 @@ def build_system_prompt(role):
         "for 'inconclusive' - follow up with a boundary_sweep on synthetic_classification (sweeping "
         "imbalance_ratio or n_features) to find the specific regime where the effect appears or "
         "disappears. 'This holds below 15% minority class but not above' is a much stronger finding "
-        "than 'it depends'."
+        "than 'it depends'. "
+        "Before running experiments, call list_datasets once - if real user-provided data is listed "
+        "(marked USER-PROVIDED), include it alongside the standard portfolio. Whether a claim holds "
+        "on the user's own data is the most important thing you can report, more important than "
+        "whether it holds on generic benchmarks."
     )
 
 

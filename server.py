@@ -1,3 +1,4 @@
+import argparse
 import sys
 from mcp.server.fastmcp import FastMCP
 from engine import Session, summarize_scope
@@ -8,16 +9,44 @@ from papers.search import (
 )
 from experiment.spec import ExperimentSpec, Variant, Probe
 from experiment.probes import run_probe
-
-
-claim = (
-    sys.argv[1]
-    if len(sys.argv) > 1
-    else "Does SMOTE improve F1 more than class-weighting on imbalanced data?"
+from experiment.datasets import (
+    register_csv_dataset,
+    list_datasets as get_dataset_catalog,
 )
 
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "claim",
+    nargs="?",
+    default="Does SMOTE improve F1 more than class-weighting on imbalanced data?",
+)
+parser.add_argument("--csv")
+parser.add_argument("--target")
+parser.add_argument("--task-type", choices=["classification", "regression"])
+parser.add_argument("--positive-label")
+args = parser.parse_args()
+
+claim = args.claim
 session = Session(claim)
 mcp = FastMCP("research-agent")
+
+if args.csv:
+    if not args.target or not args.task_type:
+        raise SystemExit("--csv requires --target and --task-type")
+
+    registered = register_csv_dataset(
+        args.csv,
+        args.target,
+        args.task_type,
+        args.positive_label,
+    )
+
+    print(
+        f"Registered user_data: {registered.X.shape[0]} rows, "
+        f"{registered.X.shape[1]} features",
+        file=sys.stderr,
+    )
 
 
 def format_result(result) -> str:
@@ -59,6 +88,37 @@ def format_result(result) -> str:
 @mcp.tool(description="Read the claim you are investigating.")
 def read_claim() -> str:
     return session.read_claim()
+
+
+@mcp.tool(
+    description=(
+        "List every dataset name usable in run_experiment's datasets field, "
+        "including any user-provided data (marked USER-PROVIDED). Call this "
+        "before choosing datasets to check whether real user data is available "
+        "beyond the standard portfolio - if it is, prefer testing against it, "
+        "since 'does this hold for data like the user's' is a stronger answer "
+        "than 'does this hold on generic benchmark datasets'."
+    )
+)
+def list_datasets() -> str:
+    entries = get_dataset_catalog()
+    lines = []
+
+    for e in entries:
+        if e["user_provided"]:
+            ratio_note = (
+                f", minority_ratio={e['minority_ratio']:.2f}"
+                if e["minority_ratio"] is not None
+                else ""
+            )
+            lines.append(
+                f"{e['name']} ({e['task_type']}, USER-PROVIDED): "
+                f"n={e['n_samples']}, features={e['n_features']}{ratio_note}"
+            )
+        else:
+            lines.append(f"{e['name']} ({e['task_type']}): {', '.join(e['tags'])}")
+
+    return "\n".join(lines)
 
 
 def format_papers(papers):
@@ -191,7 +251,9 @@ def cite(
         "strengthen_baseline, leakage_check, metric_decompose, seed_variance, "
         "boundary_sweep. datasets is a comma-separated list from: breast_cancer, "
         "credit_g, pima_diabetes, synthetic_classification, diabetes_regression, "
-        "california_housing, synthetic_regression. "
+        "california_housing, synthetic_regression - call list_datasets first to "
+        "check whether 'user_data' (real user-provided data) is also available; "
+        "if it is, include it. "
         "model_a and model_b must each be EXACTLY one bare model name: "
         "logistic_regression, random_forest, gradient_boosting, xgboost, catboost "
         "(classification) or linear_regression, random_forest, gradient_boosting, "
