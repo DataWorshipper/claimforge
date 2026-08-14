@@ -16,6 +16,7 @@ from sklearn.ensemble import (
 )
 from xgboost import XGBClassifier, XGBRegressor
 from catboost import CatBoostClassifier, CatBoostRegressor
+from sklearn.preprocessing import StandardScaler
 from imblearn.pipeline import Pipeline
 from imblearn.over_sampling import ADASYN, SMOTE
 
@@ -164,7 +165,7 @@ def build_model(variant: Variant, task_type, seed):
 
 
 def build_pipeline(variant: Variant, task_type, seed):
-    steps = []
+    steps = [("scale", StandardScaler())]
 
     if variant.technique:
         if task_type != "classification":
@@ -423,8 +424,10 @@ def run_leakage_check(
             spec.variant_b.technique
         ](0)[0][1]
 
+        X_scaled = StandardScaler().fit_transform(dataset.X)
+
         X_leaked, y_leaked = resampler.fit_resample(
-            dataset.X,
+            X_scaled,
             dataset.y,
         )
 

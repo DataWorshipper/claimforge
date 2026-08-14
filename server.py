@@ -2,9 +2,9 @@ import sys
 from mcp.server.fastmcp import FastMCP
 from engine import Session
 from papers.search import (
-    search_papers,
-    get_citations,
-    get_references,
+    search_papers as raw_search_papers,
+    get_citations as raw_get_citations,
+    get_references as raw_get_references,
 )
 from experiment.spec import ExperimentSpec, Variant, Probe
 from experiment.probes import run_probe
@@ -53,7 +53,7 @@ def read_claim() -> str:
     )
 )
 def search_papers(agent: str, query: str) -> str:
-    papers = search_papers(
+    papers = raw_search_papers(
         query,
         max_results=5,
     )
@@ -79,7 +79,7 @@ def get_citations(
     agent: str,
     paper_id: str,
 ) -> str:
-    papers = get_citations(
+    papers = raw_get_citations(
         paper_id,
         max_results=5,
     )
@@ -105,7 +105,7 @@ def get_references(
     agent: str,
     paper_id: str,
 ) -> str:
-    papers = get_references(
+    papers = raw_get_references(
         paper_id,
         max_results=10,
     )

@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 import numpy as np
+import pandas as pd
 from sklearn.datasets import (
-    load_breast_cancer,
+    load_breast_cancer as sk_load_breast_cancer,
     load_diabetes,
     fetch_california_housing,
     fetch_openml,
@@ -27,14 +28,15 @@ def minority_ratio(y):
 
 
 def load_breast_cancer():
-    data = load_breast_cancer()
+    data = sk_load_breast_cancer()
     return data.data, data.target
 
 
 def load_credit_g():
-    data = fetch_openml("credit-g", version=1, as_frame=False, parser="auto")
+    data = fetch_openml("credit-g", version=1, as_frame=True, parser="auto")
+    X = pd.get_dummies(data.data, drop_first=True).to_numpy(dtype=float)
     y = np.where(data.target == "bad", 1, 0)
-    return data.data, y
+    return X, y
 
 
 def load_pima_diabetes():
