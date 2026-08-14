@@ -1,7 +1,7 @@
 import os
 import asyncio
 import httpx
-from google.genai.errors import ClientError
+from google.genai.errors import APIError
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -9,7 +9,7 @@ from google.genai import types
 load_dotenv()
 
 API_KEY = os.getenv("GEMINI_API_KEY")
-MODEL = "gemini-3.1-flash"
+MODEL = "gemini-2.5-flash"
 
 
 ROLE_TOOLS = {
@@ -155,10 +155,12 @@ async def generate_with_retry(client, **kwargs):
                 **kwargs
             )
 
-        except ClientError as error:
-            if error.code == 429 and attempt < 5:
-                print("rate limited, waiting 20s...")
-                await asyncio.sleep(20)
+        except APIError as error:
+            wait = 20 if error.code == 429 else 10
+
+            if attempt < 5:
+                print(f"API error {error.code} ({error.status}), retrying in {wait}s...")
+                await asyncio.sleep(wait)
                 continue
 
             raise
