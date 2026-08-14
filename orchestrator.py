@@ -60,6 +60,8 @@ async def investigate(claim):
                     console.print(f"Trace saved to {path}", style="yellow", markup=False)
                     return
 
+                await asyncio.sleep(4)
+
             console.rule("Turn limit reached - no final reports filed")
             path = tracer.finish("timeout", MAX_TURNS)
             console.print(f"Trace saved to {path}", style="yellow", markup=False)

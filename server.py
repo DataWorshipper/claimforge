@@ -160,10 +160,13 @@ def cite(
         "recall, or auc for classification; rmse, mae, or r2 for regression. "
         "Do not use 'f1_score' or 'accuracy' - they are not valid metric names. "
         "sweep_param/sweep_values are only used by boundary_sweep, leave empty "
-        "otherwise. Example - to test whether SMOTE beats a class-weighted "
-        "logistic regression baseline: probe=direct_ab, model_a=logistic_regression, "
-        "class_weight_a=balanced, model_b=logistic_regression, technique_b=smote, "
-        "primary_metric=f1, datasets=credit_g,breast_cancer,pima_diabetes."
+        "otherwise. "
+        "Worked example, to test whether SMOTE beats a class-weighted logistic "
+        "regression baseline, set these SEPARATE tool arguments (not one string): "
+        "probe is direct_ab. datasets is 'credit_g,breast_cancer,pima_diabetes'. "
+        "model_a is 'logistic_regression'. class_weight_a is 'balanced'. "
+        "model_b is 'logistic_regression'. technique_b is 'smote'. "
+        "primary_metric is 'f1'."
     )
 )
 def run_experiment(
