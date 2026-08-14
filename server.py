@@ -1,4 +1,5 @@
 import argparse
+import json
 import sys
 from mcp.server.fastmcp import FastMCP
 from engine import Session, summarize_scope
@@ -194,6 +195,10 @@ def get_citations(
 
     session.log_papers(agent, papers)
 
+    for p in papers:
+        if p.id != paper_id:
+            session.log_citation_edge(p.id, paper_id)
+
     if not papers:
         return "No citing papers found."
 
@@ -226,6 +231,10 @@ def get_references(
         return f"Error fetching references for {paper_id}: {error}"
 
     session.log_papers(agent, papers)
+
+    for p in papers:
+        if p.id != paper_id:
+            session.log_citation_edge(paper_id, p.id)
 
     if not papers:
         return "No references found."
@@ -523,6 +532,16 @@ def final_report() -> str:
             lines.append(f"    Notes: {p['notes']}")
 
     return "\n".join(lines)
+
+
+@mcp.tool(
+    description=(
+        "Internal: get the full final report as JSON, for persisting alongside "
+        "the trace log. Only call after status is complete."
+    )
+)
+def final_report_json() -> str:
+    return json.dumps(session.final_report())
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import json
 import sys
 import time
 
@@ -60,7 +61,9 @@ async def investigate(claim, server_args=None):
                 console.rule(f"Investigation complete in {final_turn + 1} turns")
                 final = await session.call_tool("final_report", {})
                 console.print(final.content[0].text, style="white", markup=False)
-                path = tracer.finish("complete", final_turn + 1)
+                final_json = await session.call_tool("final_report_json", {})
+                report = json.loads(final_json.content[0].text)
+                path = tracer.finish("complete", final_turn + 1, final_report=report)
                 console.print(f"Trace saved to {path}", style="yellow", markup=False)
 
             for turn in range(MAX_TURNS):

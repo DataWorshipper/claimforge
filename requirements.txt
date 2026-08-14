@@ -13,3 +13,6 @@ catboost>=1.2
 requests
 networkx>=3.0
 matplotlib>=3.8
+
+streamlit>=1.30.0
+pyvis>=0.3.2

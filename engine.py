@@ -33,6 +33,8 @@ class Session:
         self.read_counts = {}
         self.notebooks = {}
         self.papers_seen = []
+        self.paper_index = {}
+        self.citation_edges = []
         self.citations = []
         self.probe_log = []
         self.reports = {"proposer": None, "skeptic": None}
@@ -82,6 +84,18 @@ class Session:
                 "id": p.id,
                 "title": p.title
             })
+            self.paper_index[p.id] = {
+                "title": p.title,
+                "year": p.year,
+                "source": p.source,
+                "cited_by_count": p.cited_by_count,
+            }
+
+    def log_citation_edge(self, source_id, target_id):
+        self.citation_edges.append({
+            "from": source_id,
+            "to": target_id,
+        })
 
     def cite(self, agent, paper_id, title, reason):
         self.citations.append({
@@ -154,5 +168,7 @@ class Session:
             "skeptic": self.reports["skeptic"],
             "citations": self.citations,
             "papers_seen": self.papers_seen,
+            "paper_index": self.paper_index,
+            "citation_edges": self.citation_edges,
             "probes_run": self.probe_log,
         }

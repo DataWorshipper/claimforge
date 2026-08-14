@@ -19,12 +19,16 @@ class Tracer:
             "status": status,
         })
 
-    def finish(self, result, turns):
+    def finish(self, result, turns, final_report=None):
         self.meta["result"] = result
         self.meta["turns"] = turns
         self.meta["total_tokens"] = sum(event["tokens"] for event in self.events)
         os.makedirs("logs", exist_ok=True)
         path = os.path.join("logs", f"run_{int(self.meta['started'])}.json")
         with open(path, "w", encoding="utf-8") as f:
-            json.dump({"meta": self.meta, "events": self.events}, f, indent=2)
+            json.dump(
+                {"meta": self.meta, "events": self.events, "final_report": final_report},
+                f,
+                indent=2,
+            )
         return path
