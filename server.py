@@ -1,6 +1,6 @@
 import sys
 from mcp.server.fastmcp import FastMCP
-from engine import Session
+from engine import Session, summarize_scope
 from papers.search import (
     search_papers as raw_search_papers,
     get_citations as raw_get_citations,
@@ -27,8 +27,13 @@ def format_result(result) -> str:
 
     for r in result.per_dataset:
         delta = r.delta[result.spec.primary_metric]
+        ratio_note = (
+            f", minority_ratio={r.minority_ratio:.2f}"
+            if r.minority_ratio is not None
+            else ""
+        )
         lines.append(
-            f"  {r.dataset}: "
+            f"  {r.dataset} (n={r.n_samples}, features={r.n_features}{ratio_note}): "
             f"delta({result.spec.primary_metric})={delta:+.3f}, "
             f"supported={r.supported}"
         )
@@ -36,6 +41,13 @@ def format_result(result) -> str:
     lines.append(
         f"Overall: {result.support_count}/{result.total_count} "
         "datasets support this comparison."
+    )
+
+    lines.append(
+        f"Tested scope: {summarize_scope(result.per_dataset)}. "
+        "This result only tells you what happens in this scope - if it "
+        "doesn't match the claim's real-world use case, say so and consider "
+        "verdict='scope_limited'."
     )
 
     return "\n".join(lines)
@@ -411,7 +423,8 @@ def final_report() -> str:
         lines.append(
             f"[{p['agent']}] "
             f"{p['probe']} -> "
-            f"{p['support']} datasets supported"
+            f"{p['support']} datasets supported "
+            f"(scope: {p['scope']})"
         )
 
     return "\n".join(lines)

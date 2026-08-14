@@ -9,7 +9,7 @@ from google.genai import types
 load_dotenv()
 
 API_KEY = os.getenv("GEMINI_API_KEY")
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.1-flash-lite"
 
 
 ROLE_TOOLS = {
@@ -61,7 +61,14 @@ def build_system_prompt(role):
         "reach a good answer alone. Talk with send_message and read_messages. Use remember and "
         "recall for notes. Whenever a paper actually informs your reasoning, call cite on it. "
         "Be decisive and brief. Take ONE action per turn. When you are confident in your position, "
-        "call file_report with your verdict, a short summary, and the paper ids you relied on."
+        "call file_report with your verdict, a short summary, and the paper ids you relied on. "
+        "ML results are highly data-dependent - a technique that helps on one kind of data can "
+        "do nothing or hurt on another. Every run_experiment result tells you the exact scope it "
+        "was tested in (sample count, feature count, minority ratio, domain tags). If your evidence "
+        "only covers a narrow scope, prefer verdict='scope_limited' over 'supported' or 'contested', "
+        "and state the scope explicitly in your summary (e.g. 'holds on tabular data with under 20% "
+        "minority class; untested outside that'). A precise, scoped answer is more valuable than a "
+        "confident, unscoped one."
     )
 
     if role == "proposer":

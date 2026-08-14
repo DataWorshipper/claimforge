@@ -51,6 +51,10 @@ class DatasetResult:
     metrics_b: dict
     delta: dict
     supported: bool
+    n_samples: int
+    n_features: int
+    minority_ratio: Optional[float] = None
+    tags: List[str] = field(default_factory=list)
 
 
 @dataclass

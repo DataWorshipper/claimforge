@@ -323,6 +323,15 @@ def measure(
     return metrics_a, metrics_b, delta
 
 
+def dataset_scope(dataset):
+    return {
+        "n_samples": dataset.X.shape[0],
+        "n_features": dataset.X.shape[1],
+        "minority_ratio": dataset.minority_ratio,
+        "tags": list(dataset.tags),
+    }
+
+
 def classify_tradeoff(
     delta,
     positive_metrics=("precision", "recall"),
@@ -378,6 +387,7 @@ def run_ab_probe(
                 metrics_b=metrics_b,
                 delta=delta,
                 supported=supported,
+                **dataset_scope(dataset),
             )
         )
 
@@ -487,6 +497,7 @@ def run_leakage_check(
                 metrics_b=leaky_metrics,
                 delta=delta,
                 supported=leaked,
+                **dataset_scope(dataset),
             )
         )
 
@@ -552,6 +563,7 @@ def run_seed_variance_probe(
                 metrics_b=metrics_b,
                 delta=delta,
                 supported=supported,
+                **dataset_scope(dataset),
             )
         )
 
@@ -621,6 +633,7 @@ def run_boundary_sweep(
                 metrics_b=metrics_b,
                 delta=delta,
                 supported=supported,
+                **dataset_scope(dataset),
             )
         )
 

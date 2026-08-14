@@ -1,6 +1,31 @@
 from experiment.spec import Verdict
 
 
+def summarize_scope(per_dataset):
+    if not per_dataset:
+        return ""
+
+    task_types = sorted({r.task_type for r in per_dataset})
+    samples = [r.n_samples for r in per_dataset]
+    features = [r.n_features for r in per_dataset]
+    ratios = [r.minority_ratio for r in per_dataset if r.minority_ratio is not None]
+    tags = sorted({t for r in per_dataset for t in r.tags})
+
+    parts = [
+        f"task_type={'/'.join(task_types)}",
+        f"n_samples={min(samples)}-{max(samples)}",
+        f"n_features={min(features)}-{max(features)}",
+    ]
+
+    if ratios:
+        parts.append(f"minority_ratio={min(ratios):.2f}-{max(ratios):.2f}")
+
+    if tags:
+        parts.append(f"domains={','.join(tags)}")
+
+    return ", ".join(parts)
+
+
 class Session:
     def __init__(self, claim):
         self.claim = claim
@@ -72,6 +97,7 @@ class Session:
             "agent": agent,
             "probe": spec.probe.value,
             "support": f"{result.support_count}/{result.total_count}",
+            "scope": summarize_scope(result.per_dataset),
         })
 
     def file_report(
