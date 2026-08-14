@@ -35,12 +35,17 @@ if args.csv:
     if not args.target or not args.task_type:
         raise SystemExit("--csv requires --target and --task-type")
 
-    registered = register_csv_dataset(
-        args.csv,
-        args.target,
-        args.task_type,
-        args.positive_label,
-    )
+    try:
+        registered = register_csv_dataset(
+            args.csv,
+            args.target,
+            args.task_type,
+            args.positive_label,
+        )
+    except FileNotFoundError:
+        raise SystemExit(f"--csv file not found: {args.csv}")
+    except Exception as error:
+        raise SystemExit(f"Failed to load --csv {args.csv}: {error}")
 
     print(
         f"Registered user_data: {registered.X.shape[0]} rows, "
