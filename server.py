@@ -142,12 +142,24 @@ def cite(
     description=(
         "Run a probe experiment on real data. probe is one of: direct_ab, "
         "strengthen_baseline, leakage_check, metric_decompose, seed_variance, "
-        "boundary_sweep. datasets is a comma-separated list of dataset names "
-        "(breast_cancer, credit_g, pima_diabetes, synthetic_classification, "
-        "diabetes_regression, california_housing, synthetic_regression). "
-        "model_a/model_b are the two configurations being compared. "
-        "technique_b/class_weight_a/class_weight_b/sweep_param/sweep_values "
-        "are optional, pass an empty string to omit them."
+        "boundary_sweep. datasets is a comma-separated list from: breast_cancer, "
+        "credit_g, pima_diabetes, synthetic_classification, diabetes_regression, "
+        "california_housing, synthetic_regression. "
+        "model_a and model_b must each be EXACTLY one bare model name: "
+        "logistic_regression, random_forest, gradient_boosting, xgboost, catboost "
+        "(classification) or linear_regression, random_forest, gradient_boosting, "
+        "xgboost, catboost (regression). Do NOT put hyperparameters, class weights, "
+        "or techniques inside the model name string - those are separate parameters. "
+        "class_weight_a/class_weight_b are optional, the only meaningful value is "
+        "'balanced'. technique_b is optional, lowercase only: smote or adasyn. "
+        "primary_metric decides which delta counts as supported: f1, precision, "
+        "recall, or auc for classification; rmse, mae, or r2 for regression. "
+        "Do not use 'f1_score' or 'accuracy' - they are not valid metric names. "
+        "sweep_param/sweep_values are only used by boundary_sweep, leave empty "
+        "otherwise. Example - to test whether SMOTE beats a class-weighted "
+        "logistic regression baseline: probe=direct_ab, model_a=logistic_regression, "
+        "class_weight_a=balanced, model_b=logistic_regression, technique_b=smote, "
+        "primary_metric=f1, datasets=credit_g,breast_cancer,pima_diabetes."
     )
 )
 def run_experiment(
@@ -165,26 +177,29 @@ def run_experiment(
     sweep_values: str = "",
 ) -> str:
 
+    def norm(text):
+        return text.strip().lower()
+
     try:
         spec = ExperimentSpec(
-            probe=Probe(probe),
+            probe=Probe(norm(probe)),
             datasets=[
                 d.strip()
                 for d in datasets.split(",")
                 if d.strip()
             ],
             variant_a=Variant(
-                model=model_a,
-                class_weight=class_weight_a or None,
+                model=norm(model_a),
+                class_weight=norm(class_weight_a) or None,
             ),
             variant_b=Variant(
-                model=model_b,
-                class_weight=class_weight_b or None,
-                technique=technique_b or None,
+                model=norm(model_b),
+                class_weight=norm(class_weight_b) or None,
+                technique=norm(technique_b) or None,
             ),
-            primary_metric=primary_metric,
+            primary_metric=norm(primary_metric),
             seeds=seeds,
-            sweep_param=sweep_param or None,
+            sweep_param=sweep_param.strip() or None,
             sweep_values=(
                 [
                     float(v)

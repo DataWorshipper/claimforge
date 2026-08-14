@@ -1,5 +1,6 @@
 import os
 import asyncio
+import httpx
 from google.genai.errors import ClientError
 from dotenv import load_dotenv
 from google import genai
@@ -158,6 +159,14 @@ async def generate_with_retry(client, **kwargs):
             if error.code == 429 and attempt < 5:
                 print("rate limited, waiting 20s...")
                 await asyncio.sleep(20)
+                continue
+
+            raise
+
+        except httpx.TransportError as error:
+            if attempt < 5:
+                print(f"network hiccup ({error}), retrying in 5s...")
+                await asyncio.sleep(5)
                 continue
 
             raise

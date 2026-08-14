@@ -140,7 +140,8 @@ def build_model(variant: Variant, task_type, seed):
 
     if variant.model not in registry:
         raise ValueError(
-            f"{variant.model} is not a valid {task_type} model"
+            f"'{variant.model}' is not a valid {task_type} model, "
+            f"choose from: {', '.join(registry)}"
         )
 
     kwargs = dict(
@@ -171,6 +172,12 @@ def build_pipeline(variant: Variant, task_type, seed):
         if task_type != "classification":
             raise ValueError(
                 f"technique '{variant.technique}' only applies to classification"
+            )
+
+        if variant.technique not in TECHNIQUES:
+            raise ValueError(
+                f"'{variant.technique}' is not a valid technique, "
+                f"choose from: {', '.join(TECHNIQUES)}"
             )
 
         steps.extend(
@@ -252,6 +259,15 @@ def resolve_metrics(
 
     if spec.primary_metric not in metrics:
         metrics = metrics + [spec.primary_metric]
+
+    valid = scorer_registry(task_type)
+    unknown = [m for m in metrics if m not in valid]
+
+    if unknown:
+        raise ValueError(
+            f"unknown metric(s) {unknown} for {task_type}, "
+            f"choose from: {', '.join(valid)}"
+        )
 
     return metrics
 
