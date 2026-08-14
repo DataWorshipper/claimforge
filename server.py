@@ -50,6 +50,9 @@ def format_result(result) -> str:
         "verdict='scope_limited'."
     )
 
+    if result.notes:
+        lines.append(f"Notes: {result.notes}")
+
     return "\n".join(lines)
 
 
@@ -203,14 +206,26 @@ def cite(
         "primary_metric decides which delta counts as supported: f1, precision, "
         "recall, or auc for classification; rmse, mae, or r2 for regression. "
         "Do not use 'f1_score' or 'accuracy' - they are not valid metric names. "
-        "sweep_param/sweep_values are only used by boundary_sweep, leave empty "
-        "otherwise. "
+        "sweep_param/sweep_values are only used by boundary_sweep - datasets must "
+        "then be exactly ONE parametrized dataset (synthetic_classification or "
+        "synthetic_regression), and sweep_param is one of its numeric kwargs: for "
+        "synthetic_classification that's imbalance_ratio, n_samples, or n_features; "
+        "for synthetic_regression it's n_samples, n_features, or noise. "
+        "sweep_values is a comma-separated list of numbers to try, e.g. "
+        "'0.3,0.2,0.1,0.05,0.02'. IMPORTANT: if direct_ab (or strengthen_baseline) "
+        "comes back mixed - supported on some datasets, not others - that is usually "
+        "more interesting to pin down with boundary_sweep than to just report as "
+        "'inconclusive'. Sweeping imbalance_ratio or n_features tells you the exact "
+        "regime where the effect appears or disappears, which is a stronger, more "
+        "useful finding than a plain yes/no. "
         "Worked example, to test whether SMOTE beats a class-weighted logistic "
         "regression baseline, set these SEPARATE tool arguments (not one string): "
         "probe is direct_ab. datasets is 'credit_g,breast_cancer,pima_diabetes'. "
         "model_a is 'logistic_regression'. class_weight_a is 'balanced'. "
         "model_b is 'logistic_regression'. technique_b is 'smote'. "
-        "primary_metric is 'f1'."
+        "primary_metric is 'f1'. A follow-up boundary_sweep on the same variants "
+        "would set: probe=boundary_sweep, datasets='synthetic_classification', "
+        "sweep_param='imbalance_ratio', sweep_values='0.3,0.2,0.1,0.05,0.02'."
     )
 )
 def run_experiment(
@@ -426,6 +441,19 @@ def final_report() -> str:
             f"{p['support']} datasets supported "
             f"(scope: {p['scope']})"
         )
+
+        for b in p["breakdown"]:
+            delta_str = (
+                f"{b['delta']:+.3f}"
+                if b["delta"] is not None
+                else "n/a"
+            )
+            lines.append(
+                f"    {b['dataset']}: delta={delta_str}, supported={b['supported']}"
+            )
+
+        if p.get("notes"):
+            lines.append(f"    Notes: {p['notes']}")
 
     return "\n".join(lines)
 

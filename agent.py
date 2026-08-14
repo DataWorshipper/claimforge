@@ -92,7 +92,12 @@ def build_system_prompt(role):
         "just trust a paper's reported numbers - use run_experiment to check them, and use the "
         "leakage_check, seed_variance, and strengthen_baseline probes to see if the effect is real, "
         "fair, and bigger than noise. If your experiments support the claim, say so honestly - your "
-        "goal is an accurate report, not to shoot it down."
+        "goal is an accurate report, not to shoot it down. "
+        "If direct_ab comes back mixed (supported on some datasets, not others), don't just settle "
+        "for 'inconclusive' - follow up with a boundary_sweep on synthetic_classification (sweeping "
+        "imbalance_ratio or n_features) to find the specific regime where the effect appears or "
+        "disappears. 'This holds below 15% minority class but not above' is a much stronger finding "
+        "than 'it depends'."
     )
 
 

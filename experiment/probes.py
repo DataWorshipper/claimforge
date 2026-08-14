@@ -359,6 +359,39 @@ def classify_tradeoff(
     return "tradeoff"
 
 
+def find_crossover(per_dataset, sweep_param):
+    points = sorted(
+        [
+            (r.sweep_value, r.supported)
+            for r in per_dataset
+            if r.sweep_value is not None
+        ],
+        key=lambda p: p[0],
+    )
+
+    if len(points) < 2:
+        return "Not enough sweep points to describe a crossover."
+
+    flips = [
+        (points[i][0], points[i + 1][0])
+        for i in range(len(points) - 1)
+        if points[i][1] != points[i + 1][1]
+    ]
+
+    if not flips:
+        state = "supported" if points[0][1] else "not supported"
+        return f"Consistently {state} across the whole swept range of {sweep_param}."
+
+    if len(flips) == 1:
+        low, high = flips[0]
+        return f"Crossover: effect flips between {sweep_param}={low} and {sweep_param}={high}."
+
+    return (
+        f"Effect flips {len(flips)} times across the swept range of {sweep_param} - "
+        "not a clean monotonic boundary, treat with caution."
+    )
+
+
 def run_ab_probe(
     spec: ExperimentSpec,
 ) -> ExperimentResult:
@@ -620,9 +653,20 @@ def run_boundary_sweep(
             spec,
         )
 
+        pooled_std = (
+            metrics_a[spec.primary_metric]["std"]
+            + metrics_b[spec.primary_metric]["std"]
+        ) / 2
+
+        effect_size = (
+            delta[spec.primary_metric] / pooled_std
+            if pooled_std > 1e-9
+            else float("inf")
+        )
+
         supported = (
-            delta[spec.primary_metric]
-            > spec.min_delta
+            delta[spec.primary_metric] > spec.min_delta
+            and abs(effect_size) >= spec.z_threshold
         )
 
         per_dataset.append(
@@ -633,6 +677,7 @@ def run_boundary_sweep(
                 metrics_b=metrics_b,
                 delta=delta,
                 supported=supported,
+                sweep_value=value,
                 **dataset_scope(dataset),
             )
         )
@@ -643,9 +688,11 @@ def run_boundary_sweep(
         if r.supported
     )
 
+    crossover = find_crossover(per_dataset, spec.sweep_param)
+
     notes = (
-        f"swept {spec.sweep_param} "
-        f"over {spec.sweep_values}"
+        f"swept {spec.sweep_param} over {spec.sweep_values}. "
+        f"{crossover}"
     )
 
     return ExperimentResult(

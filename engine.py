@@ -98,6 +98,15 @@ class Session:
             "probe": spec.probe.value,
             "support": f"{result.support_count}/{result.total_count}",
             "scope": summarize_scope(result.per_dataset),
+            "notes": result.notes,
+            "breakdown": [
+                {
+                    "dataset": r.dataset,
+                    "delta": r.delta.get(spec.primary_metric),
+                    "supported": r.supported,
+                }
+                for r in result.per_dataset
+            ],
         })
 
     def file_report(

@@ -55,6 +55,7 @@ class DatasetResult:
     n_features: int
     minority_ratio: Optional[float] = None
     tags: List[str] = field(default_factory=list)
+    sweep_value: Optional[float] = None
 
 
 @dataclass
