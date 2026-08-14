@@ -10,6 +10,7 @@ from agent import Agent, MODEL, make_client
 from tracer import Tracer
 
 MAX_TURNS = 40
+GRACE_TURNS_AFTER_FIRST_REPORT = 6
 COLORS = {"proposer": "cyan", "skeptic": "magenta"}
 console = Console()
 
@@ -17,6 +18,11 @@ console = Console()
 async def get_status(session):
     result = await session.call_tool("status", {})
     return result.content[0].text
+
+
+async def has_filed(session, role):
+    result = await session.call_tool("has_filed", {"agent": role})
+    return result.content[0].text == "true"
 
 
 def show(role, said, actions):
@@ -44,8 +50,43 @@ async def investigate(claim):
             console.rule("Investigation starting")
             console.print(claim, style="yellow", markup=False)
 
+            first_filed_at = None
+
+            async def finish_up(final_turn):
+                console.rule(f"Investigation complete in {final_turn + 1} turns")
+                final = await session.call_tool("final_report", {})
+                console.print(final.content[0].text, style="white", markup=False)
+                path = tracer.finish("complete", final_turn + 1)
+                console.print(f"Trace saved to {path}", style="yellow", markup=False)
+
             for turn in range(MAX_TURNS):
                 agent = players[turn % 2]
+                other = players[(turn + 1) % 2]
+
+                if await has_filed(session, agent.role):
+                    console.print(
+                        f"{agent.role.upper()}: already filed, skipping turn.",
+                        style="dim",
+                        markup=False,
+                    )
+                    if await get_status(session) == "complete":
+                        await finish_up(turn)
+                        return
+                    continue
+
+                if first_filed_at is None and await has_filed(session, other.role):
+                    first_filed_at = turn
+
+                if (
+                    first_filed_at is not None
+                    and turn - first_filed_at >= GRACE_TURNS_AFTER_FIRST_REPORT
+                ):
+                    agent.nudge(
+                        f"Your partner ({other.role}) has already filed their report. "
+                        "File yours now with file_report, using whatever evidence you have "
+                        "gathered so far."
+                    )
+
                 start = time.perf_counter()
                 said, actions = await agent.take_turn()
                 seconds = time.perf_counter() - start
@@ -53,11 +94,7 @@ async def investigate(claim):
                 status = await get_status(session)
                 tracer.log(turn, agent.role, said, actions, agent.last_tokens, seconds, status)
                 if status == "complete":
-                    console.rule(f"Investigation complete in {turn + 1} turns")
-                    final = await session.call_tool("final_report", {})
-                    console.print(final.content[0].text, style="white", markup=False)
-                    path = tracer.finish(status, turn + 1)
-                    console.print(f"Trace saved to {path}", style="yellow", markup=False)
+                    await finish_up(turn)
                     return
 
                 await asyncio.sleep(4)

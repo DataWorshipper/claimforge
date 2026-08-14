@@ -211,6 +211,14 @@ class Agent:
 
         self.last_tokens = 0
 
+    def nudge(self, text):
+        self.contents.append(
+            types.Content(
+                role="user",
+                parts=[types.Part(text=text)],
+            )
+        )
+
     async def call_tool(self, name, arguments):
         args = dict(arguments)
 

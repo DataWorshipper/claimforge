@@ -109,6 +109,9 @@ class Session:
 
         return "investigating"
 
+    def has_filed(self, agent):
+        return self.reports.get(agent) is not None
+
     def final_report(self):
         return {
             "claim": self.claim,

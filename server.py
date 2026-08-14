@@ -46,79 +46,111 @@ def read_claim() -> str:
     return session.read_claim()
 
 
+def format_papers(papers):
+    lines = []
+
+    for p in papers:
+        lines.append(f"{p.id} ({p.year}): {p.title}")
+
+        if p.abstract:
+            snippet = p.abstract[:220]
+
+            if len(p.abstract) > 220:
+                snippet += "..."
+
+            lines.append(f"  {snippet}")
+
+    return "\n".join(lines)
+
+
 @mcp.tool(
     description=(
         "Search arXiv and OpenAlex for papers matching a query. "
-        "Returns up to 5 results with id, year, title."
+        "Returns up to 5 results with id, year, title, and a short "
+        "abstract snippet so you can judge relevance before citing."
     )
 )
 def search_papers(agent: str, query: str) -> str:
-    papers = raw_search_papers(
-        query,
-        max_results=5,
-    )
+    try:
+        papers = raw_search_papers(
+            query,
+            max_results=5,
+        )
+    except Exception as error:
+        return f"Error searching papers: {error}"
 
     session.log_papers(agent, papers)
 
     if not papers:
         return "No papers found."
 
-    return "\n".join(
-        f"{p.id} ({p.year}): {p.title}"
-        for p in papers
-    )
+    return format_papers(papers)
 
 
 @mcp.tool(
     description=(
-        "Get papers that cite the given paper id "
-        "(must be an 'openalex:W...' id)."
+        "Get papers that cite the given paper id. Only works on "
+        "'openalex:W...' ids - arxiv: ids are not supported here."
     )
 )
 def get_citations(
     agent: str,
     paper_id: str,
 ) -> str:
-    papers = raw_get_citations(
-        paper_id,
-        max_results=5,
-    )
+    if not paper_id.startswith("openalex:"):
+        return (
+            f"Error: get_citations only works with openalex: ids "
+            f"(e.g. 'openalex:W12345'), not '{paper_id}'. Use a "
+            f"paper id from an openalex search result instead."
+        )
+
+    try:
+        papers = raw_get_citations(
+            paper_id,
+            max_results=5,
+        )
+    except Exception as error:
+        return f"Error fetching citations for {paper_id}: {error}"
 
     session.log_papers(agent, papers)
 
     if not papers:
         return "No citing papers found."
 
-    return "\n".join(
-        f"{p.id} ({p.year}): {p.title}"
-        for p in papers
-    )
+    return format_papers(papers)
 
 
 @mcp.tool(
     description=(
-        "Get papers referenced by the given paper id "
-        "(must be an 'openalex:W...' id)."
+        "Get papers referenced by the given paper id. Only works on "
+        "'openalex:W...' ids - arxiv: ids are not supported here."
     )
 )
 def get_references(
     agent: str,
     paper_id: str,
 ) -> str:
-    papers = raw_get_references(
-        paper_id,
-        max_results=10,
-    )
+    if not paper_id.startswith("openalex:"):
+        return (
+            f"Error: get_references only works with openalex: ids "
+            f"(e.g. 'openalex:W12345'), not '{paper_id}'. Use a "
+            f"paper id from an openalex search result instead."
+        )
+
+    try:
+        papers = raw_get_references(
+            paper_id,
+            max_results=10,
+        )
+    except Exception as error:
+        return f"Error fetching references for {paper_id}: {error}"
 
     session.log_papers(agent, papers)
 
     if not papers:
         return "No references found."
 
-    return "\n".join(
-        f"{p.id} ({p.year}): {p.title}"
-        for p in papers
-    )
+    return format_papers(papers)
 
 
 @mcp.tool(
@@ -315,6 +347,13 @@ def file_report(
 )
 def status() -> str:
     return session.status()
+
+
+@mcp.tool(
+    description="Internal: check whether a specific agent has filed their report yet."
+)
+def has_filed(agent: str) -> str:
+    return "true" if session.has_filed(agent) else "false"
 
 
 @mcp.tool(
