@@ -52,10 +52,11 @@ def load_synthetic_classification(
     seed=0,
 ):
     weights = [1 - imbalance_ratio, imbalance_ratio]
+    n_informative = max(1, n_features // 2)
     X, y = make_classification(
         n_samples=n_samples,
         n_features=n_features,
-        n_informative=10,
+        n_informative=n_informative,
         weights=weights,
         random_state=seed,
     )

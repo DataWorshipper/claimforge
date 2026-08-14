@@ -55,6 +55,13 @@ if args.csv:
     )
 
 
+INT_SWEEP_PARAMS = {"n_samples", "n_features"}
+
+
+def parse_sweep_value(param, raw):
+    return int(float(raw)) if param in INT_SWEEP_PARAMS else float(raw)
+
+
 def format_result(result) -> str:
     lines = [
         f"Probe: {result.spec.probe.value}"
@@ -288,7 +295,9 @@ def cite(
         "synthetic_classification that's imbalance_ratio, n_samples, or n_features; "
         "for synthetic_regression it's n_samples, n_features, or noise. "
         "sweep_values is a comma-separated list of numbers to try, e.g. "
-        "'0.3,0.2,0.1,0.05,0.02'. IMPORTANT: if direct_ab (or strengthen_baseline) "
+        "'0.3,0.2,0.1,0.05,0.02' (n_samples/n_features are automatically treated as "
+        "whole numbers, imbalance_ratio/noise as decimals - just pass plain numbers "
+        "either way). IMPORTANT: if direct_ab (or strengthen_baseline) "
         "comes back mixed - supported on some datasets, not others - that is usually "
         "more interesting to pin down with boundary_sweep than to just report as "
         "'inconclusive'. Sweeping imbalance_ratio or n_features tells you the exact "
@@ -362,7 +371,7 @@ def run_experiment(
             sweep_param=sweep_param.strip() or None,
             sweep_values=(
                 [
-                    float(v)
+                    parse_sweep_value(sweep_param.strip(), v)
                     for v in sweep_values.split(",")
                 ]
                 if sweep_values
